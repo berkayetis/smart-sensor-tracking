@@ -28,9 +28,13 @@ services:
       MQTT_TLS_REJECT_UNAUTHORIZED: ${MQTT_TLS_REJECT_UNAUTHORIZED?missing MQTT_TLS_REJECT_UNAUTHORIZED}
       MQTT_TLS_CA_PATH: /app/certs/ca.crt
     depends_on:
-      - postgres
-      - influxdb
-      - mosquitto
+      postgres:
+        condition: service_healthy
+      influxdb:
+        condition: service_started
+      mosquitto:
+        condition: service_started
+    restart: on-failure
     volumes:
       - ./logs:/app/logs
       - ./docker/mosquitto/certs/ca.crt:/app/certs/ca.crt:ro
@@ -46,6 +50,12 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
 
   influxdb:
     image: influxdb:2.7-alpine
