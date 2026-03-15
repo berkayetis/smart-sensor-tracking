@@ -23,6 +23,7 @@
 - `JWT_EXPIRES_IN`
 - `BOOTSTRAP_ADMIN_EMAIL`
 - `BOOTSTRAP_ADMIN_PASSWORD`
+- `RUN_DB_SEED` (opsiyonel, varsayilan `false`)
 - `POSTGRES_USER`
 - `POSTGRES_PASSWORD`
 - `POSTGRES_DB`
@@ -49,6 +50,7 @@ Notlar:
 - `MQTT_URL` mutlaka `mqtts://` ile baslamalidir.
 - `MQTT_TLS_REJECT_UNAUTHORIZED=true` olmali.
 - `MQTT_TLS_CA_PATH` gecerli bir dosyayi gostermelidir.
+- `RUN_DB_SEED=true` ise app container acilisinda migration sonrasinda otomatik `prisma seed` calisir.
 - Mosquitto `passwordfile` dosyasi container baslangicinda runtime uretilir.
 - Private key dosyalari (`*.key`) repoya alinmaz; local/development ortaminda yeniden uretilir.
 

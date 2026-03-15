@@ -175,6 +175,9 @@ Tum HTTP hatalari tek tip JSON formatinda doner:
 
 Asagidaki env degiskenleri zorunludur: `JWT_SECRET`, `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_PASSWORD`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `DOCKER_INFLUXDB_INIT_MODE`, `DOCKER_INFLUXDB_INIT_USERNAME`, `DOCKER_INFLUXDB_INIT_PASSWORD`, `INFLUX_TOKEN`, `INFLUX_ORG`, `INFLUX_BUCKET`, `MQTT_USERNAME`, `MQTT_PASSWORD`, `MQTT_URL` (`mqtts://`), `MQTT_TLS_REJECT_UNAUTHORIZED` (`true`), `MQTT_TLS_CA_PATH`.
 
+Opsiyonel:
+- `RUN_DB_SEED=true` yapilirsa container acilisinda `prisma seed` otomatik calisir.
+
 1. MQTT sertifikalarini localde uret:
 
 ```powershell
@@ -194,6 +197,7 @@ docker compose up --build
 ```
 
 Eksik zorunlu env varsa `docker compose config` komutu fail eder.
+`RUN_DB_SEED=true` ise migration sonrasi seed verileri de otomatik uygulanir.
 
 4. Docker disinda local calistirma (opsiyonel):
 

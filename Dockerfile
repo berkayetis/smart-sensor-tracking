@@ -23,4 +23,4 @@ RUN chown -R appuser:appuser /app
 USER appuser
 
 EXPOSE 3000
-CMD ["sh", "-c", "npm run prisma:deploy && npm run start:prod"]
+CMD ["sh", "-c", "npm run prisma:deploy && if [ \"${RUN_DB_SEED:-false}\" = \"true\" ]; then echo 'RUN_DB_SEED=true -> running prisma seed'; npm run prisma:seed; else echo 'RUN_DB_SEED is not true -> skipping prisma seed'; fi && npm run start:prod"]
