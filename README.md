@@ -29,6 +29,63 @@ Bu proje, fabrikadaki IoT sensorlerinden MQTT ile telemetry verisi toplayan, ver
 - Mimari tasarim dokumani: [docs/mimari-tasarim.md](docs/mimari-tasarim.md)
 - Deployment rehberi: [docs/deployment-rehberi.md](docs/deployment-rehberi.md)
 
+## Quick Start (10 Dakika)
+
+Bu bolum, projeyi teslim alan ekibin sistemi hizlica ayaga kaldirip calistigini dogrulamasi icindir.
+
+On kosullar:
+- Docker Desktop + Docker Compose
+- Node.js 20+
+- PowerShell 7+ (veya Windows PowerShell)
+
+1. Ortam dosyasini olustur ve MQTT sertifikalarini uret:
+
+```powershell
+Copy-Item .env.example .env
+powershell -ExecutionPolicy Bypass -File .\scripts\generate-mqtt-certs.ps1
+```
+
+2. `.env` dosyasindaki `replace_with_*` degerlerini doldur.
+3. Uygulamayi kaldir:
+
+```bash
+docker compose up --build -d
+```
+
+4. Uygulama loglarini kontrol et (opsiyonel):
+
+```powershell
+docker logs --since 30s smart-sensor-app
+```
+
+5. Smoke test: login + korumali endpoint cagrisi:
+
+```powershell
+$loginBody = @{
+  email = "<BOOTSTRAP_ADMIN_EMAIL>"
+  password = "<BOOTSTRAP_ADMIN_PASSWORD>"
+} | ConvertTo-Json
+
+$token = (Invoke-RestMethod `
+  -Method Post `
+  -Uri "http://localhost:3000/auth/login" `
+  -ContentType "application/json" `
+  -Body $loginBody).accessToken
+
+Invoke-RestMethod `
+  -Method Get `
+  -Uri "http://localhost:3000/companies" `
+  -Headers @{ Authorization = "Bearer $token" }
+```
+
+6. Swagger uzerinden hizli endpoint kontrolu:
+- `http://localhost:3000/docs`
+- `http://localhost:3000/docs-json`
+
+Notlar:
+- `RUN_DB_SEED=true` yaparsaniz demo kullanicilar/sensorler otomatik yuklenir.
+- Detayli kurulum ve tum konfig icin asagidaki `Kurulum` bolumune bakin.
+
 ## Rol Kurallari
 
 - `SYSTEM_ADMIN`: tum sirketler ve tum log/istatistik verileri.
