@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SYSTEM_ADMIN
+  COMPANY_ADMIN
+  USER
+}
+
+model Company {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  users     User[]
+  sensors   Sensor[]
+}
+
+model User {
+  id                String                 @id @default(uuid())
+  email             String                 @unique
+  passwordHash      String
+  role              Role
+  companyId         String?
+  company           Company?               @relation(fields: [companyId], references: [id])
+  isActive          Boolean                @default(true)
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  devicePermissions UserDevicePermission[]
+  logViewEvents     LogViewEvent[]
+
+  @@index([companyId])
+  @@index([role])
+}
+
+model Sensor {
+  id                String                 @id
+  name              String
+  companyId         String?
+  company           Company?               @relation(fields: [companyId], references: [id])
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  devicePermissions UserDevicePermission[]
+
+  @@index([companyId])
+}
+
+model UserDevicePermission {
+  userId     String
+  sensorId   String
+  assignedAt DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sensor     Sensor   @relation(fields: [sensorId], references: [id], onDelete: Cascade)
+
+  @@id([userId, sensorId])
+  @@index([sensorId])
+}
+
+model LogViewEvent {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String   @default("viewed_logs")
+  timestamp DateTime @default(now())
+
+  @@index([userId, timestamp])
+}

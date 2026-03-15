@@ -1,0 +1,88 @@
+services:
+  app:
+    build: .
+    container_name: smart-sensor-app
+    ports:
+      - "${PORT?missing PORT}:3000"
+    env_file:
+      - .env
+    environment:
+      PORT: ${PORT?missing PORT}
+      NODE_ENV: ${NODE_ENV?missing NODE_ENV}
+      JWT_SECRET: ${JWT_SECRET?missing JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN?missing JWT_EXPIRES_IN}
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL?missing BOOTSTRAP_ADMIN_EMAIL}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD?missing BOOTSTRAP_ADMIN_PASSWORD}
+      DATABASE_URL: postgresql://${POSTGRES_USER?missing POSTGRES_USER}:${POSTGRES_PASSWORD?missing POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB?missing POSTGRES_DB}?schema=public
+      INFLUX_URL: http://influxdb:8086
+      INFLUX_TOKEN: ${INFLUX_TOKEN?missing INFLUX_TOKEN}
+      INFLUX_ORG: ${INFLUX_ORG?missing INFLUX_ORG}
+      INFLUX_BUCKET: ${INFLUX_BUCKET?missing INFLUX_BUCKET}
+      MQTT_URL: mqtts://mosquitto:8883
+      MQTT_USERNAME: ${MQTT_USERNAME?missing MQTT_USERNAME}
+      MQTT_PASSWORD: ${MQTT_PASSWORD?missing MQTT_PASSWORD}
+      MQTT_INGEST_TOPIC: ${MQTT_INGEST_TOPIC?missing MQTT_INGEST_TOPIC}
+      MQTT_PUBLISH_TOPIC_TEMPLATE: ${MQTT_PUBLISH_TOPIC_TEMPLATE?missing MQTT_PUBLISH_TOPIC_TEMPLATE}
+      MQTT_PUBLISH_QOS: ${MQTT_PUBLISH_QOS?missing MQTT_PUBLISH_QOS}
+      MQTT_PUBLISH_RETAIN: ${MQTT_PUBLISH_RETAIN?missing MQTT_PUBLISH_RETAIN}
+      MQTT_TLS_REJECT_UNAUTHORIZED: ${MQTT_TLS_REJECT_UNAUTHORIZED?missing MQTT_TLS_REJECT_UNAUTHORIZED}
+      MQTT_TLS_CA_PATH: /app/certs/ca.crt
+    depends_on:
+      - postgres
+      - influxdb
+      - mosquitto
+    volumes:
+      - ./logs:/app/logs
+      - ./docker/mosquitto/certs/ca.crt:/app/certs/ca.crt:ro
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: smart-sensor-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER?missing POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD?missing POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB?missing POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  influxdb:
+    image: influxdb:2.7-alpine
+    container_name: smart-sensor-influxdb
+    ports:
+      - "8086:8086"
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: ${DOCKER_INFLUXDB_INIT_MODE?missing DOCKER_INFLUXDB_INIT_MODE}
+      DOCKER_INFLUXDB_INIT_USERNAME: ${DOCKER_INFLUXDB_INIT_USERNAME?missing DOCKER_INFLUXDB_INIT_USERNAME}
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${DOCKER_INFLUXDB_INIT_PASSWORD?missing DOCKER_INFLUXDB_INIT_PASSWORD}
+      DOCKER_INFLUXDB_INIT_ORG: ${INFLUX_ORG?missing INFLUX_ORG}
+      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUX_BUCKET?missing INFLUX_BUCKET}
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUX_TOKEN?missing INFLUX_TOKEN}
+    volumes:
+      - influx_data:/var/lib/influxdb2
+
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: smart-sensor-mosquitto
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - >
+        mkdir -p /mosquitto/runtime &&
+        mosquitto_passwd -b -c /mosquitto/runtime/passwordfile "$$MQTT_USERNAME" "$$MQTT_PASSWORD" &&
+        (chown mosquitto:mosquitto /mosquitto/runtime/passwordfile 2>/dev/null || true) &&
+        (chmod 600 /mosquitto/runtime/passwordfile 2>/dev/null || true) &&
+        exec /usr/sbin/mosquitto -c /mosquitto/config/mosquitto.conf
+    environment:
+      MQTT_USERNAME: ${MQTT_USERNAME?missing MQTT_USERNAME}
+      MQTT_PASSWORD: ${MQTT_PASSWORD?missing MQTT_PASSWORD}
+    ports:
+      - "8883:8883"
+    volumes:
+      - ./docker/mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./docker/mosquitto/certs:/mosquitto/certs:ro
+      - ./docker/mosquitto/runtime:/mosquitto/runtime
+
+volumes:
+  postgres_data:
+  influx_data:
