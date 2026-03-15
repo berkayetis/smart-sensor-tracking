@@ -57,8 +57,12 @@ PowerShell'de inline JSON gonderirken quote problemi yasamamak icin asagidaki yo
 ```powershell
 @'
 {"sensor_id":"temp_sensor_01","timestamp":1773543555,"temperature":100.1,"humidity":90.2}
-'@ | docker exec -i smart-sensor-mosquitto sh -lc "cat > /tmp/payload.json && mosquitto_pub -h localhost -p 8883 --cafile /mosquitto/certs/ca.crt -u '$env:MQTT_USERNAME' -P '$env:MQTT_PASSWORD' -t '$env:MQTT_INGEST_TOPIC' -f /tmp/payload.json"
+'@ | docker exec -i smart-sensor-mosquitto sh -lc 'cat > /tmp/payload.json && mosquitto_pub -h mosquitto -p 8883 --cafile /mosquitto/certs/ca.crt -u "$MQTT_USERNAME" -P "$MQTT_PASSWORD" -t "factory/sensors/temp_sensor_01/telemetry" -f /tmp/payload.json'
 ```
+
+Notlar:
+- `MQTT_INGEST_TOPIC` genellikle subscribe pattern'idir (`factory/sensors/+/telemetry`). Publish icin wildcard (`+`, `#`) kullanilmaz.
+- TLS hostname verification nedeniyle bu testte `-h localhost` yerine sertifika CN'i ile uyumlu `-h mosquitto` kullanilir.
 
 Hizli dogrulama:
 

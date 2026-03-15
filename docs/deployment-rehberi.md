@@ -97,12 +97,14 @@ curl -X POST http://localhost:3000/auth/login \
 7. MQTT ingest smoke testi (TLS):
 
 ```bash
-mosquitto_pub -h localhost -p 8883 \
-  --cafile ./docker/mosquitto/certs/ca.crt \
-  -u "$MQTT_USERNAME" -P "$MQTT_PASSWORD" \
-  -t "$MQTT_INGEST_TOPIC" \
-  -m "{\"sensor_id\":\"temp_sensor_01\",\"timestamp\":1710772800,\"temperature\":25.4,\"humidity\":55.2}"
+cat <<'JSON' | docker exec -i smart-sensor-mosquitto sh -lc 'cat > /tmp/payload.json && mosquitto_pub -h mosquitto -p 8883 --cafile /mosquitto/certs/ca.crt -u "$MQTT_USERNAME" -P "$MQTT_PASSWORD" -t "factory/sensors/temp_sensor_01/telemetry" -f /tmp/payload.json'
+{"sensor_id":"temp_sensor_01","timestamp":1710772800,"temperature":25.4,"humidity":55.2}
+JSON
 ```
+
+Not:
+- `MQTT_INGEST_TOPIC` subscribe icin wildcard (`+`) icerebilir; publish komutunda wildcard kullanilmaz.
+- TLS hostname verification nedeniyle burada `localhost` degil, sertifika CN'i ile uyumlu `mosquitto` hostu kullanilir.
 
 ## Staging Akisi (Docker Compose)
 
