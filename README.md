@@ -144,7 +144,7 @@ Ornek akis:
 3. `sensor.subscribe` ile yetkili sensor odasina katil
 4. `sensor.update` eventlerini dinle
 
-### Case Kaniti: Postman ile WebSocket Realtime Testi
+### Postman ile WebSocket Realtime Testi
 
 Asagidaki ekran goruntuleri bonus maddede istenen "WebSocket uzerinden gelen verileri Postman ile test etme" akisinin calistigini gosterir:
 
