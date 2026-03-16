@@ -6,6 +6,7 @@ import { NextFunction, Request, Response } from "express";
 import { AppModule } from "./app.module";
 import { validateCriticalEnvOrThrow } from "./common/config/critical-env.util";
 import { GlobalExceptionFilter } from "./common/filters/global-exception.filter";
+import { SuccessResponseInterceptor } from "./common/interceptors/success-response.interceptor";
 import { AppLoggerService } from "./logging/app-logger.service";
 
 async function bootstrap() {
@@ -25,6 +26,7 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
+  app.useGlobalInterceptors(new SuccessResponseInterceptor());
 
   app.enableCors({
     origin: "*",

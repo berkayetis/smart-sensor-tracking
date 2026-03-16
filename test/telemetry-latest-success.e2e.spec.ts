@@ -1,13 +1,13 @@
-import { INestApplication, Module, UnauthorizedException } from "@nestjs/common";
+import { INestApplication, Module } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import request from "supertest";
 import { AuthContextService } from "../src/auth/auth-context.service";
 import { GlobalExceptionFilter } from "../src/common/filters/global-exception.filter";
 import { SuccessResponseInterceptor } from "../src/common/interceptors/success-response.interceptor";
-import { CompaniesController } from "../src/iam/companies.controller";
-import { IamService } from "../src/iam/iam.service";
 import { Role } from "../src/iam/roles.enum";
 import { AppLoggerService } from "../src/logging/app-logger.service";
+import { TelemetryController } from "../src/telemetry/telemetry.controller";
+import { TelemetryService } from "../src/telemetry/telemetry.service";
 
 type AuthContextServiceMock = {
   resolveFromAuthorizationHeader: jest.Mock<
@@ -16,13 +16,14 @@ type AuthContextServiceMock = {
   >;
 };
 
-type IamServiceMock = {
-  listCompanies: jest.Mock<Promise<unknown[]>, [{ userId: string; role: Role; companyId: string | null }]>;
-  createCompany: jest.Mock;
+type TelemetryServiceMock = {
+  getLatest: jest.Mock<Promise<null>, [{ userId: string; role: Role; companyId: string | null }, string]>;
+  registerSensor: jest.Mock;
+  getHistory: jest.Mock;
 };
 
 @Module({
-  controllers: [CompaniesController],
+  controllers: [TelemetryController],
   providers: [
     AppLoggerService,
     {
@@ -30,37 +31,38 @@ type IamServiceMock = {
       useValue: {
         resolveFromAuthorizationHeader: jest.fn(async (authorization?: string) => {
           if (!authorization?.startsWith("Bearer ")) {
-            throw new UnauthorizedException("Bearer token is required");
+            throw new Error("Bearer token is required");
           }
           return {
-            userId: "sys-user",
-            role: Role.SYSTEM_ADMIN,
-            companyId: null,
+            userId: "user-1",
+            role: Role.USER,
+            companyId: "company-1",
           };
         }),
       },
     },
     {
-      provide: IamService,
+      provide: TelemetryService,
       useValue: {
-        listCompanies: jest.fn().mockResolvedValue([]),
-        createCompany: jest.fn(),
+        getLatest: jest.fn().mockResolvedValue(null),
+        registerSensor: jest.fn(),
+        getHistory: jest.fn().mockResolvedValue([]),
       },
     },
   ],
 })
-class UnauthorizedAccessTestModule {}
+class TelemetryLatestSuccessTestModule {}
 
-describe("Unauthorized access to protected endpoint", () => {
+describe("Telemetry latest endpoint success envelope", () => {
   let app: INestApplication;
+  let telemetryService: TelemetryServiceMock;
   let authContextService: AuthContextServiceMock;
-  let iamService: IamServiceMock;
 
   beforeAll(async () => {
-    app = await NestFactory.create(UnauthorizedAccessTestModule, { bufferLogs: true });
+    app = await NestFactory.create(TelemetryLatestSuccessTestModule, { bufferLogs: true });
     const logger = app.get(AppLoggerService);
+    telemetryService = app.get(TelemetryService);
     authContextService = app.get(AuthContextService);
-    iamService = app.get(IamService);
 
     app.useLogger(logger);
     app.useGlobalFilters(new GlobalExceptionFilter(logger));
@@ -76,31 +78,24 @@ describe("Unauthorized access to protected endpoint", () => {
     await app.close();
   });
 
-  it("returns 401 when GET /companies is called without bearer token", async () => {
-    const response = await request(app.getHttpServer()).get("/companies").expect(401);
-
-    expect(authContextService.resolveFromAuthorizationHeader).toHaveBeenCalledWith(undefined);
-    expect(response.body).toEqual(
-      expect.objectContaining({
-        success: false,
-        statusCode: 401,
-        message: "Bearer token is required",
-        path: "/companies",
-        method: "GET",
-      }),
-    );
-  });
-
-  it("returns wrapped success response for GET /companies with valid bearer token", async () => {
+  it("returns { success:true, data:null } for GET /sensors/:id/latest when no metric exists", async () => {
     const response = await request(app.getHttpServer())
-      .get("/companies")
+      .get("/sensors/temp_sensor_01/latest")
       .set("Authorization", "Bearer valid-token")
       .expect(200);
 
-    expect(iamService.listCompanies).toHaveBeenCalledTimes(1);
+    expect(authContextService.resolveFromAuthorizationHeader).toHaveBeenCalledWith("Bearer valid-token");
+    expect(telemetryService.getLatest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: "user-1",
+        role: Role.USER,
+        companyId: "company-1",
+      }),
+      "temp_sensor_01",
+    );
     expect(response.body).toEqual({
       success: true,
-      data: [],
+      data: null,
     });
   });
 });

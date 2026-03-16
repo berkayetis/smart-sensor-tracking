@@ -6,6 +6,7 @@ import {
   OnModuleInit,
 } from "@nestjs/common";
 import * as bcrypt from "bcryptjs";
+import { Prisma } from "@prisma/client";
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../database/prisma.service";
 import { Role } from "./roles.enum";
@@ -56,6 +57,16 @@ export class IamService implements OnModuleInit {
       throw new ForbiddenException("Only system admin can create system admins");
     }
 
+    if (payload.role !== Role.SYSTEM_ADMIN && targetCompanyId) {
+      const company = await this.prisma.company.findUnique({
+        where: { id: targetCompanyId },
+        select: { id: true },
+      });
+      if (!company) {
+        throw new BadRequestException("Invalid companyId");
+      }
+    }
+
     const existing = await this.prisma.user.findUnique({
       where: { email: payload.email.toLowerCase() },
     });
@@ -64,21 +75,28 @@ export class IamService implements OnModuleInit {
     }
 
     const passwordHash = await bcrypt.hash(payload.password, 10);
-    return this.prisma.user.create({
-      data: {
-        email: payload.email.toLowerCase(),
-        passwordHash,
-        role: payload.role,
-        companyId: targetCompanyId,
-      },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        companyId: true,
-        createdAt: true,
-      },
-    });
+    try {
+      return await this.prisma.user.create({
+        data: {
+          email: payload.email.toLowerCase(),
+          passwordHash,
+          role: payload.role,
+          companyId: targetCompanyId,
+        },
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          companyId: true,
+          createdAt: true,
+        },
+      });
+    } catch (error: unknown) {
+      if (this.isPrismaForeignKeyViolation(error)) {
+        throw new BadRequestException("Invalid companyId");
+      }
+      throw error;
+    }
   }
 
   async listUsers(auth: AuthContext) {
@@ -247,6 +265,16 @@ export class IamService implements OnModuleInit {
         },
       },
     );
+  }
+
+  private isPrismaForeignKeyViolation(error: unknown): boolean {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2003") {
+      return true;
+    }
+    if (typeof error === "object" && error !== null && "code" in error) {
+      return (error as { code?: unknown }).code === "P2003";
+    }
+    return false;
   }
 
   private async ensureSystemAdmin(): Promise<void> {

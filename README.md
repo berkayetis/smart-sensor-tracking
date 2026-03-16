@@ -70,7 +70,7 @@ $token = (Invoke-RestMethod `
   -Method Post `
   -Uri "http://localhost:3000/auth/login" `
   -ContentType "application/json" `
-  -Body $loginBody).accessToken
+  -Body $loginBody).data.accessToken
 
 Invoke-RestMethod `
   -Method Get `
@@ -198,6 +198,23 @@ Detayli endpoint kontratlari ve request/response ornekleri icin `docs/api-endpoi
   - Erisim: sadece `SYSTEM_ADMIN`
   - Varsayilan `limit=100`, maksimum `limit=500`
   - Not: Bu endpoint cagirildiginda otomatik `viewed_logs` kaydi olusur.
+
+## Basari Yanit Formati
+
+Tum HTTP basarili yanitlar tek tip JSON envelope formatinda doner:
+
+```json
+{
+  "success": true,
+  "data": {
+    "accessToken": "<jwt>"
+  }
+}
+```
+
+Notlar:
+- Liste donen endpointlerde `data` bir array olur.
+- Veri yoksa `data` alani `null` doner.
 
 ## Hata Yanit Formati
 

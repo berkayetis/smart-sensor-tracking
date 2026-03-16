@@ -4,6 +4,7 @@ import request from "supertest";
 import { AuthController } from "../src/auth/auth.controller";
 import { AuthService } from "../src/auth/auth.service";
 import { GlobalExceptionFilter } from "../src/common/filters/global-exception.filter";
+import { SuccessResponseInterceptor } from "../src/common/interceptors/success-response.interceptor";
 import { AppLoggerService } from "../src/logging/app-logger.service";
 
 type AuthServiceMock = {
@@ -35,6 +36,7 @@ describe("Auth login endpoint", () => {
 
     app.useLogger(logger);
     app.useGlobalFilters(new GlobalExceptionFilter(logger));
+    app.useGlobalInterceptors(new SuccessResponseInterceptor());
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
@@ -63,7 +65,12 @@ describe("Auth login endpoint", () => {
       .expect(201);
 
     expect(authService.login).toHaveBeenCalledWith("admin@example.com", "StrongPass123!");
-    expect(response.body).toEqual({ accessToken: "jwt-token" });
+    expect(response.body).toEqual({
+      success: true,
+      data: {
+        accessToken: "jwt-token",
+      },
+    });
   });
 
   it("returns 400 when payload is invalid", async () => {

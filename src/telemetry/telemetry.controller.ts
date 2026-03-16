@@ -1,5 +1,4 @@
 import { Body, Controller, Get, Param, Post, Query, UseGuards } from "@nestjs/common";
-import { ApiOkResponse } from "@nestjs/swagger";
 import { JwtOnlyGuard } from "../auth/guards/jwt-only.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
 import { Roles } from "../common/decorators/roles.decorator";
@@ -7,6 +6,7 @@ import { Role } from "../iam/roles.enum";
 import { CurrentAuth } from "../common/decorators/current-auth.decorator";
 import { AuthContext } from "../common/interfaces/auth-context.interface";
 import { mapRecords } from "../common/utils/collection.util";
+import { ApiSuccessResponse } from "../common/decorators/api-success-response.decorator";
 import { TelemetryService } from "./telemetry.service";
 import { HistoryQueryDto } from "./dto/history-query.dto";
 import { CreateSensorDto } from "./dto/create-sensor.dto";
@@ -21,7 +21,7 @@ export class TelemetryController {
 
   @Post()
   @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_ADMIN)
-  @ApiOkResponse({ type: SensorResponseDto })
+  @ApiSuccessResponse({ type: SensorResponseDto })
   async createSensor(@CurrentAuth() auth: AuthContext, @Body() dto: CreateSensorDto): Promise<SensorResponseDto> {
     const companyId = auth.role === Role.COMPANY_ADMIN ? auth.companyId ?? undefined : dto.companyId;
     const record = await this.telemetryService.registerSensor({
@@ -34,7 +34,7 @@ export class TelemetryController {
 
   @Get(":id/latest")
   @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_ADMIN, Role.USER)
-  @ApiOkResponse({ type: SensorMetricResponseDto })
+  @ApiSuccessResponse({ type: SensorMetricResponseDto, nullable: true })
   async latest(
     @CurrentAuth() auth: AuthContext,
     @Param() params: SensorIdParamDto,
@@ -45,7 +45,7 @@ export class TelemetryController {
 
   @Get(":id/history")
   @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_ADMIN, Role.USER)
-  @ApiOkResponse({ type: SensorMetricResponseDto, isArray: true })
+  @ApiSuccessResponse({ type: SensorMetricResponseDto, isArray: true })
   async history(
     @CurrentAuth() auth: AuthContext,
     @Param() params: SensorIdParamDto,

@@ -1,9 +1,9 @@
 import { Body, Controller, Get, Param, Patch, Post, UseGuards } from "@nestjs/common";
-import { ApiOkResponse } from "@nestjs/swagger";
 import { IamService } from "./iam.service";
 import { JwtOnlyGuard } from "../auth/guards/jwt-only.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
 import { Roles } from "../common/decorators/roles.decorator";
+import { ApiSuccessResponse } from "../common/decorators/api-success-response.decorator";
 import { Role } from "./roles.enum";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UpdateUserRoleDto } from "./dto/update-user-role.dto";
@@ -22,7 +22,7 @@ export class UsersController {
 
   @Get()
   @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_ADMIN)
-  @ApiOkResponse({ type: UserResponseDto, isArray: true })
+  @ApiSuccessResponse({ type: UserResponseDto, isArray: true })
   async listUsers(@CurrentAuth() auth: AuthContext): Promise<UserResponseDto[]> {
     const records = await this.iamService.listUsers(auth);
     return mapRecords(records, UserResponseDto.fromRecord);
@@ -30,7 +30,7 @@ export class UsersController {
 
   @Post()
   @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_ADMIN)
-  @ApiOkResponse({ type: UserResponseDto })
+  @ApiSuccessResponse({ type: UserResponseDto })
   async createUser(@CurrentAuth() auth: AuthContext, @Body() dto: CreateUserDto): Promise<UserResponseDto> {
     const record = await this.iamService.createUser(auth, dto);
     return UserResponseDto.fromRecord(record);
@@ -38,7 +38,7 @@ export class UsersController {
 
   @Patch(":id/role")
   @Roles(Role.SYSTEM_ADMIN)
-  @ApiOkResponse({ type: UserResponseDto })
+  @ApiSuccessResponse({ type: UserResponseDto })
   async updateRole(
     @CurrentAuth() auth: AuthContext,
     @Param() params: UserIdParamDto,
@@ -50,7 +50,7 @@ export class UsersController {
 
   @Post(":id/device-permissions")
   @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_ADMIN)
-  @ApiOkResponse({ type: DevicePermissionResponseDto, isArray: true })
+  @ApiSuccessResponse({ type: DevicePermissionResponseDto, isArray: true })
   async setDevicePermissions(
     @CurrentAuth() auth: AuthContext,
     @Param() params: UserIdParamDto,
@@ -62,7 +62,7 @@ export class UsersController {
 
   @Get(":id/device-permissions")
   @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_ADMIN, Role.USER)
-  @ApiOkResponse({ type: DevicePermissionResponseDto, isArray: true })
+  @ApiSuccessResponse({ type: DevicePermissionResponseDto, isArray: true })
   async getDevicePermissions(
     @CurrentAuth() auth: AuthContext,
     @Param() params: UserIdParamDto,

@@ -1,5 +1,4 @@
 import { Controller, Get, Post, Query, UseGuards } from "@nestjs/common";
-import { ApiOkResponse } from "@nestjs/swagger";
 import { AnalyticsService } from "./analytics.service";
 import { JwtOnlyGuard } from "../auth/guards/jwt-only.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
@@ -7,6 +6,7 @@ import { Roles } from "../common/decorators/roles.decorator";
 import { CurrentAuth } from "../common/decorators/current-auth.decorator";
 import { AuthContext } from "../common/interfaces/auth-context.interface";
 import { mapRecords } from "../common/utils/collection.util";
+import { ApiSuccessResponse } from "../common/decorators/api-success-response.decorator";
 import { Role } from "../iam/roles.enum";
 import { LogStatsQueryDto } from "./dto/log-stats-query.dto";
 import { HourlyLogStatResponseDto } from "./dto/hourly-log-stat-response.dto";
@@ -19,7 +19,7 @@ export class AnalyticsController {
 
   @Post()
   @UseGuards(JwtOnlyGuard)
-  @ApiOkResponse({ type: LogViewEventResponseDto })
+  @ApiSuccessResponse({ type: LogViewEventResponseDto })
   async trackView(@CurrentAuth() auth: AuthContext): Promise<LogViewEventResponseDto> {
     const record = await this.analyticsService.trackLogView(auth.userId);
     return LogViewEventResponseDto.fromRecord(record);
@@ -28,7 +28,7 @@ export class AnalyticsController {
   @Get("stats")
   @UseGuards(JwtOnlyGuard, RolesGuard)
   @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_ADMIN)
-  @ApiOkResponse({ type: HourlyLogStatResponseDto, isArray: true })
+  @ApiSuccessResponse({ type: HourlyLogStatResponseDto, isArray: true })
   async stats(
     @CurrentAuth() auth: AuthContext,
     @Query() query: LogStatsQueryDto,
@@ -41,7 +41,7 @@ export class AnalyticsController {
   @Get("prediction")
   @UseGuards(JwtOnlyGuard, RolesGuard)
   @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_ADMIN)
-  @ApiOkResponse({ type: LogViewPredictionResponseDto })
+  @ApiSuccessResponse({ type: LogViewPredictionResponseDto })
   async prediction(@CurrentAuth() auth: AuthContext): Promise<LogViewPredictionResponseDto> {
     await this.analyticsService.trackLogView(auth.userId);
     const record = await this.analyticsService.getNextHourPrediction(auth);

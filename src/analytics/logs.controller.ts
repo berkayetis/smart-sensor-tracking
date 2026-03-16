@@ -1,11 +1,11 @@
 import { Controller, Get, Query, UseGuards } from "@nestjs/common";
-import { ApiOkResponse } from "@nestjs/swagger";
 import { JwtOnlyGuard } from "../auth/guards/jwt-only.guard";
 import { Roles } from "../common/decorators/roles.decorator";
 import { RolesGuard } from "../common/guards/roles.guard";
 import { CurrentAuth } from "../common/decorators/current-auth.decorator";
 import { AuthContext } from "../common/interfaces/auth-context.interface";
 import { mapRecords } from "../common/utils/collection.util";
+import { ApiSuccessResponse } from "../common/decorators/api-success-response.decorator";
 import { Role } from "../iam/roles.enum";
 import { AnalyticsService } from "./analytics.service";
 import { LogEventResponseDto } from "./dto/log-event-response.dto";
@@ -18,7 +18,7 @@ export class LogsController {
   @Get("events")
   @UseGuards(JwtOnlyGuard, RolesGuard)
   @Roles(Role.SYSTEM_ADMIN)
-  @ApiOkResponse({ type: LogEventResponseDto, isArray: true })
+  @ApiSuccessResponse({ type: LogEventResponseDto, isArray: true })
   async getEvents(
     @CurrentAuth() auth: AuthContext,
     @Query() query: LogEventsQueryDto,
