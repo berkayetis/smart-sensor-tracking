@@ -20,6 +20,7 @@ Bu proje, fabrikadaki IoT sensorlerinden MQTT ile telemetry verisi toplayan, ver
 - Merkezi hata yonetimi (global exception filter)
 - Kullanici log goruntuleme takibi (`POST /logs/views`)
 - Event-only saatlik log istatistigi (`GET /logs/views/stats`)
+- Kullanici bazli log goruntuleme istatistigi (`GET /logs/views/stats/users`)
 - Global rate limiting
 - Docker Compose ile PostgreSQL + InfluxDB + Mosquitto + App
 
@@ -190,10 +191,15 @@ Detayli endpoint kontratlari ve request/response ornekleri icin `docs/api-endpoi
 - `POST /logs/views`
 - `GET /logs/views/stats?from=...&to=...&bucket=hour`
   - Erisim: `SYSTEM_ADMIN`, `COMPANY_ADMIN`
-  - Not: Bu endpoint cagirildiginda otomatik `viewed_logs` kaydi olusur.
+- `GET /logs/views/stats/users?from=...&to=...&limit=100`
+  - Erisim: `SYSTEM_ADMIN`, `COMPANY_ADMIN`
+  - Not: Kullanici bazli toplamlari `count` azalan sirayla dondurur.
+- `GET /logs/views/stats/users/:userId?from=...&to=...`
+  - Erisim: `SYSTEM_ADMIN`, `COMPANY_ADMIN`
+  - Not: Tek bir kullanicinin secilen araliktaki toplam goruntuleme sayisini dondurur.
 - `GET /logs/views/prediction`
   - Erisim: `SYSTEM_ADMIN`, `COMPANY_ADMIN`
-  - Not: Son 24 saat log goruntuleme davranisindan bir sonraki saat icin basit tahmin doner ve endpoint cagrildiginda otomatik `viewed_logs` kaydi olusur.
+  - Not: Son 24 saat log goruntuleme davranisindan bir sonraki saat icin basit tahmin doner.
 - `GET /logs/events?from=...&to=...&level=log|warn|error&event=...&limit=...`
   - Erisim: sadece `SYSTEM_ADMIN`
   - Varsayilan `limit=100`, maksimum `limit=500`

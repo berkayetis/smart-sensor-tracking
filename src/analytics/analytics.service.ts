@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable } from "@nestjs/common";
+import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import * as fs from "node:fs";
 import { PrismaService } from "../database/prisma.service";
 import { AppLoggerService } from "../logging/app-logger.service";
@@ -15,6 +15,12 @@ export type LogViewPrediction = {
   last24hHourlyAverage: number;
   predictedNextHourViews: number;
   generatedAt: string;
+};
+
+export type UserLogViewStat = {
+  userId: string;
+  email: string;
+  count: number;
 };
 
 @Injectable()
@@ -105,6 +111,120 @@ export class AnalyticsService {
       hourStart,
       count,
     }));
+  }
+
+  async getUserStats(
+    auth: AuthContext,
+    from?: string,
+    to?: string,
+    limit?: number,
+  ): Promise<UserLogViewStat[]> {
+    if (auth.role === Role.USER) {
+      throw new ForbiddenException("Insufficient role permissions");
+    }
+    if (auth.role === Role.COMPANY_ADMIN && !auth.companyId) {
+      return [];
+    }
+
+    const normalizedLimit = Math.min(Math.max(limit ?? 100, 1), 500);
+    const { fromDate, toDate } = resolveDateRange(from, to, 7 * 86400000);
+    const where = {
+      action: "viewed_logs",
+      timestamp: {
+        gte: fromDate,
+        lte: toDate,
+      },
+      ...(auth.role === Role.COMPANY_ADMIN
+        ? {
+            user: {
+              companyId: auth.companyId,
+            },
+          }
+        : {}),
+    };
+
+    const groupedRows = await this.prisma.logViewEvent.groupBy({
+      by: ["userId"],
+      where: {
+        ...where,
+      },
+      _count: {
+        _all: true,
+      },
+    });
+
+    const sortedRows = groupedRows
+      .sort((left, right) => right._count._all - left._count._all)
+      .slice(0, normalizedLimit);
+    const userIds = sortedRows.map((row) => row.userId);
+    if (userIds.length === 0) {
+      return [];
+    }
+
+    const users = await this.prisma.user.findMany({
+      where: {
+        id: {
+          in: userIds,
+        },
+      },
+      select: {
+        id: true,
+        email: true,
+      },
+    });
+
+    const userMap = new Map(users.map((user) => [user.id, user.email]));
+    return sortedRows.map((row) => ({
+      userId: row.userId,
+      email: userMap.get(row.userId) ?? "unknown",
+      count: row._count._all,
+    }));
+  }
+
+  async getUserStatById(
+    auth: AuthContext,
+    userId: string,
+    from?: string,
+    to?: string,
+  ): Promise<UserLogViewStat> {
+    if (auth.role === Role.USER) {
+      throw new ForbiddenException("Insufficient role permissions");
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+      select: {
+        id: true,
+        email: true,
+        companyId: true,
+      },
+    });
+    if (!user) {
+      throw new NotFoundException("User not found");
+    }
+    if (auth.role === Role.COMPANY_ADMIN && user.companyId !== auth.companyId) {
+      throw new ForbiddenException("Insufficient permission for this user");
+    }
+
+    const { fromDate, toDate } = resolveDateRange(from, to, 7 * 86400000);
+    const count = await this.prisma.logViewEvent.count({
+      where: {
+        userId,
+        action: "viewed_logs",
+        timestamp: {
+          gte: fromDate,
+          lte: toDate,
+        },
+      },
+    });
+
+    return {
+      userId: user.id,
+      email: user.email,
+      count,
+    };
   }
 
   async getNextHourPrediction(auth: AuthContext): Promise<LogViewPrediction> {
