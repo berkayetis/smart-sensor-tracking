@@ -12,12 +12,12 @@ export class LogViewEventResponseDto {
 
   static fromRecord(record: {
     userId: string;
-    timestamp: Date;
+    timestamp: number;
     action: "viewed_logs";
   }): LogViewEventResponseDto {
     const dto = new LogViewEventResponseDto();
     dto.user_id = record.userId;
-    dto.timestamp = Math.floor(record.timestamp.getTime() / 1000);
+    dto.timestamp = record.timestamp;
     dto.action = record.action;
     return dto;
   }

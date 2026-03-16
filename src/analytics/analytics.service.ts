@@ -34,23 +34,24 @@ export class AnalyticsService {
 
   async trackLogView(userId: string): Promise<{
     userId: string;
-    timestamp: Date;
+    timestamp: number;
     action: "viewed_logs";
   }> {
-    const timestamp = new Date();
+    const timestamp = Math.floor(Date.now() / 1000);
+    const persistedAt = new Date(timestamp * 1000);
     const action = "viewed_logs" as const;
     await this.prisma.logViewEvent.create({
       data: {
         userId,
         action,
-        timestamp,
+        timestamp: persistedAt,
       },
     });
 
     this.logger.logEvent("viewed_logs", {
-      timestamp: Math.floor(timestamp.getTime() / 1000),
+      user_id: userId,
+      timestamp,
       action,
-      source: "logs_api",
     }, {
       actor: {
         userId,

@@ -116,6 +116,29 @@ describe("Logs view analytics endpoints", () => {
     });
   });
 
+  it("returns log view record with unix timestamp format", async () => {
+    analyticsService.trackLogView.mockResolvedValue({
+      userId: "sys-admin-id",
+      timestamp: 1710772800,
+      action: "viewed_logs",
+    });
+
+    const response = await request(app.getHttpServer())
+      .post("/logs/views")
+      .set("Authorization", "Bearer valid-token")
+      .expect(201);
+
+    expect(analyticsService.trackLogView).toHaveBeenCalledWith("sys-admin-id");
+    expect(response.body).toEqual({
+      success: true,
+      data: {
+        user_id: "sys-admin-id",
+        timestamp: 1710772800,
+        action: "viewed_logs",
+      },
+    });
+  });
+
   it("returns a single user log view stat by userId", async () => {
     analyticsService.getUserStatById.mockResolvedValue({
       userId: "u-1",
